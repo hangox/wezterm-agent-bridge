@@ -1,0 +1,29 @@
+{
+  "name": "wezterm-agent-bridge",
+  "version": "0.3.0",
+  "private": false,
+  "description": "Bridge Claude Code's it2 (iTerm2-compatible) pane control protocol onto native WezTerm panes.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "tests",
+    "README.md",
+    "docs"
+  ],
+  "bin": {
+    "wezterm-agent-bridge": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/chmod-bin.mjs",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node dist/posix-to-powershell.test.js && node dist/cli-reject-token.test.js && node dist/shell.test.js && node dist/it2-bash-hook.test.js && node dist/win32-powershell-hook.test.js && node dist/ensure-daemon-security.test.js",
+    "doctor": "node dist/index.js doctor",
+    "print-zsh-init": "node dist/index.js print-zsh-init"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "typescript": "^6.0.3"
+  }
+}

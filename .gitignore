@@ -1,0 +1,21 @@
+# Node / TypeScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+artifacts/
+
+# Logs
+*.log
+logs/
+
+# Local runtime state
+.agent-bridge/
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# npm pack/prepack 测试产物（不进 Git 根，测试用 --pack-destination 输出到私有临时目录）
+*.tgz

@@ -1,0 +1,36 @@
+name: CI
+
+# 最小三平台无凭据验证：只做 npm ci + typecheck + 现有单测/构建，
+# 不跑真实模型、不需要任何 secret、不自动发布 npm。
+# GUI/WezTerm 真实 E2E 由 QA 在实机上单独提供证据，这个 workflow 不覆盖那部分。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: npm ci
+        run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: build + unit tests
+        run: npm test
