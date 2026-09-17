@@ -27,7 +27,15 @@ Claude Code 判断"是否可以做 pane 拆分/读写"的依据是 `it2` 命令�
 
 ## 安装
 
-本项目**目前不发布到 npm 公共仓库**。从源码构建，或从 [GitHub Release](https://github.com/hangox/wezterm-agent-bridge/releases) 下载对应版本的打包 tgz 安装：
+从 npm 安装：
+
+```bash
+npm install -g wezterm-agent-bridge
+```
+
+npm 上的版本由 GitHub Actions 通过 [npm Trusted Publisher (OIDC)](https://docs.npmjs.com/trusted-publishers) 在 Release 发布时自动发布（`.github/workflows/release.yml`），带 provenance 签名，可在 npm 页面核验构建来源；不在仓库/CI 里存任何 npm token。
+
+也可以从源码构建，或从 [GitHub Release](https://github.com/hangox/wezterm-agent-bridge/releases) 下载对应版本的打包 tgz 安装：
 
 从源码构建：
 ```bash
