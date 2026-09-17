@@ -4,6 +4,14 @@
   "private": false,
   "description": "Bridge Claude Code's it2 (iTerm2-compatible) pane control protocol onto native WezTerm panes.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hangox/wezterm-agent-bridge.git"
+  },
+  "homepage": "https://github.com/hangox/wezterm-agent-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/hangox/wezterm-agent-bridge/issues"
+  },
   "type": "module",
   "files": [
     "dist",
