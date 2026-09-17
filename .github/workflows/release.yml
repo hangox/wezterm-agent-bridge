@@ -1,0 +1,39 @@
+name: Release
+
+# npm Trusted Publisher (OIDC)：不存任何 npm token/密码。
+# 触发方式：在 GitHub 上 Publish 一个 Release（或手动 workflow_dispatch）。
+# 需要先在 npmjs.com 包设置里把本仓库/本 workflow 加为 Trusted Publisher。
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+
+      - name: 确保 npm 版本满足 trusted publishing 要求 (>=11.5.1)
+        run: npm install -g npm@latest
+
+      - name: npm ci
+        run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: build + unit tests
+        run: npm test
+
+      - name: npm publish
+        run: npm publish
