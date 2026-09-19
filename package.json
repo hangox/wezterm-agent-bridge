@@ -1,6 +1,6 @@
 {
   "name": "wezterm-agent-bridge",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": false,
   "description": "Bridge Claude Code's it2 (iTerm2-compatible) pane control protocol onto native WezTerm panes.",
   "license": "MIT",

@@ -94,7 +94,19 @@ export async function ensureDaemon(stateDir = defaultStateDir()): Promise<Daemon
 }
 
 function socketMatches(info: DaemonInfo, desiredSocket: string | undefined): boolean {
-  return !desiredSocket || info.weztermUnixSocket === desiredSocket;
+  if (!desiredSocket) return true;
+  return normalizeSocketPathForCompare(info.weztermUnixSocket) === normalizeSocketPathForCompare(desiredSocket);
+}
+
+// Windows 上 `/` 和 `\` 都是合法路径分隔符——WezTerm 自身给 pane 子进程设置的
+// WEZTERM_UNIX_SOCKET 环境变量实测会混用两者（如
+// `C:\Users\x\.local/share/wezterm\gui-sock-123`），而本项目 discoverWeztermSocket()
+// 用 path.join 拼出来的是纯反斜杠版本。同一个 socket 文件因此会被朴素字符串比较
+// 误判成两个不同的 socket，导致健康的 daemon 被无谓拒绝、新的 it2 请求全部失败。
+// POSIX 上 `\` 是合法文件名字符，不能做同样的归一化，所以只在 win32 上生效。
+function normalizeSocketPathForCompare(p: string | undefined): string | undefined {
+  if (!p) return p;
+  return process.platform === "win32" ? p.replace(/\//g, "\\") : p;
 }
 
 /**

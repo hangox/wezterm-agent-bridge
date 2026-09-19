@@ -231,6 +231,76 @@ await run("ensureDaemon()：已有健康 daemon 但 socket 不匹配 → 明确�
   assert.equal(stillHealthy.status, 200, "原 daemon 在这次 ensureDaemon() 调用后应该依然健康，没有被误杀");
 });
 
+await run("ensureDaemon()：Windows 下同一 socket 混用 `/` 和 `\\` 分隔符必须视为匹配（真实生产回归——WezTerm 自身设置的 WEZTERM_UNIX_SOCKET 会混用分隔符，discoverWeztermSocket() 拼出来的是纯反斜杠版本，朴素字符串比较会误判成两个不同 socket）", async () => {
+  const stateDir = tmpStateDir();
+  const info = await startRealDaemon(stateDir);
+  // 模拟真实踩过的场景：daemon.json 里记录的是 WezTerm 自身给出的混合分隔符路径。
+  const mixedSeparatorSocket = "C:\\Users\\hangox\\.local/share/wezterm\\gui-sock-29996";
+  const pureBackslashSocket = "C:\\Users\\hangox\\.local\\share\\wezterm\\gui-sock-29996";
+  const infoWithSocket: DaemonInfo = { ...info, weztermUnixSocket: mixedSeparatorSocket };
+  await writeJsonFile(daemonInfoPath(stateDir), infoWithSocket);
+
+  const originalPlatform = process.platform;
+  const originalDesiredSocketEnv = process.env.WEZTERM_UNIX_SOCKET;
+  Object.defineProperty(process, "platform", { value: "win32" });
+  process.env.WEZTERM_UNIX_SOCKET = pureBackslashSocket;
+  try {
+    const result = await ensureDaemon(stateDir);
+    assert.equal(result.pid, info.pid, "同一个 socket（只是分隔符写法不同）应该被判定为匹配，直接复用原 daemon，而不是 throw 拒绝");
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    if (originalDesiredSocketEnv === undefined) delete process.env.WEZTERM_UNIX_SOCKET;
+    else process.env.WEZTERM_UNIX_SOCKET = originalDesiredSocketEnv;
+  }
+});
+
+await run("ensureDaemon()：Windows 下真正不同的 socket 仍必须拒绝，不能因分隔符归一化而过宽放行", async () => {
+  const stateDir = tmpStateDir();
+  const info = await startRealDaemon(stateDir);
+  const infoWithSocket: DaemonInfo = {
+    ...info,
+    weztermUnixSocket: "C:\\Users\\hangox\\.local\\share\\wezterm\\gui-sock-A"
+  };
+  await writeJsonFile(daemonInfoPath(stateDir), infoWithSocket);
+
+  const originalPlatform = process.platform;
+  const originalDesiredSocketEnv = process.env.WEZTERM_UNIX_SOCKET;
+  Object.defineProperty(process, "platform", { value: "win32" });
+  process.env.WEZTERM_UNIX_SOCKET = "C:\\Users\\hangox\\.local\\share\\wezterm\\gui-sock-B";
+  try {
+    await assert.rejects(
+      () => ensureDaemon(stateDir),
+      /不会自动终止|AGENT_BRIDGE_STATE_DIR/,
+      "Windows 路径即使分隔符允许归一化，真正不同的 socket 仍必须拒绝"
+    );
+  } finally {
+    Object.defineProperty(process, "platform", { value: originalPlatform });
+    if (originalDesiredSocketEnv === undefined) delete process.env.WEZTERM_UNIX_SOCKET;
+    else process.env.WEZTERM_UNIX_SOCKET = originalDesiredSocketEnv;
+  }
+});
+
+await run("ensureDaemon()：非 Windows 平台不做分隔符归一化——`\\` 是合法文件名字符，混用分隔符的两个路径必须继续视为不同 socket", async () => {
+  const stateDir = tmpStateDir();
+  const info = await startRealDaemon(stateDir);
+  const infoWithSocket: DaemonInfo = { ...info, weztermUnixSocket: "/tmp/wezterm/gui-sock-1" };
+  await writeJsonFile(daemonInfoPath(stateDir), infoWithSocket);
+
+  const originalDesiredSocketEnv = process.env.WEZTERM_UNIX_SOCKET;
+  // 故意在文件名里放一个反斜杠字符（POSIX 下合法），确保非 win32 平台不会被误归一化成匹配。
+  process.env.WEZTERM_UNIX_SOCKET = "/tmp/wezterm/gui-sock-1\\extra";
+  try {
+    await assert.rejects(
+      () => ensureDaemon(stateDir),
+      /不会自动终止|AGENT_BRIDGE_STATE_DIR/,
+      "非 win32 平台上，路径差一个字符（哪怕是反斜杠）就应该继续判定为不匹配并拒绝"
+    );
+  } finally {
+    if (originalDesiredSocketEnv === undefined) delete process.env.WEZTERM_UNIX_SOCKET;
+    else process.env.WEZTERM_UNIX_SOCKET = originalDesiredSocketEnv;
+  }
+});
+
 await run("ensureDaemon()：daemon.json 是 stale（进程早已不在/端口没人监听）时，超时诊断信息不能泄露 token", async () => {
   const stateDir = tmpStateDir();
   // 构造一个 stale daemon.json：端口没有任何东西监听（不健康），但 token 是
